@@ -1,3 +1,15 @@
+1. Set Up EC2 Security Groups
+Before anything, ensure your EC2 security groups are configured properly. Allow traffic on the following ports:
+
+2181: Zookeeper's default port.
+9093 and 9094: Kafka's ports (or whichever ports you configure).
+You can add these ports in the Inbound Rules section of your EC2 security group.
+
+2. Modify the docker-compose.yml file
+You'll need to ensure that the Kafka container can advertise itself properly so that it’s accessible from outside the EC2 instance. You also need to handle the EC2 instance's external IP properly.
+
+Here’s a modified docker-compose.yml for Kafka and Zookeeper that works on EC2:
+
 version: '3'
 services:
   zookeeper:
@@ -8,7 +20,7 @@ services:
   kafka:
     image: wurstmeister/kafka:latest
     environment:
-      KAFKA_ADVERTISED_LISTENER: INSIDE://18.221.94.240:9093
+      KAFKA_ADVERTISED_LISTENER: INSIDE://<EC2_PUBLIC_IP>:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
       KAFKA_LISTENER_NAME_INSIDE: INSIDE
       KAFKA_LISTENER_PORT_INSIDE: 9093
@@ -22,3 +34,31 @@ services:
       - "9094:9094"
     depends_on:
       - zookeeper
+
+
+3. Install Docker and Docker Compose on EC2
+# Install Docker
+sudo yum update -y
+sudo yum install -y docker
+sudo service docker start
+sudo usermod -aG docker ec2-user
+
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+
+
+4. Run Docker Compose on EC2
+# Navigate to the directory containing the docker-compose.yml file
+docker-compose up -d
+
+
+5. Verify Kafka is Running
+docker-compose logs kafka
+docker ps
+
+6. Connect to Kafka from External Clients
+<EC2_PUBLIC_IP>:9093
+
+
